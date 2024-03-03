@@ -1,3 +1,9 @@
+#
+/tests/serial.js
+/tests/serial.wasm
+/tests/.vite
+/cmake-build-debug-emscripten
+
 # backup files
 *~
 \#*
