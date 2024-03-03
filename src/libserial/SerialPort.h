@@ -37,6 +37,9 @@
 
 #include <ios>
 #include <memory>
+#include <emscripten/val.h>
+#include <functional>
+#include <type_traits>
 
 /**
  * @namespace Libserial
@@ -289,22 +292,13 @@ namespace LibSerial
          * @brief Gets the serial port file descriptor.
          * @return Returns the serial port file descriptor.
          */
-        int GetFileDescriptor() const ;
+        emscripten::EM_VAL GetFileDescriptor() const ;
 
         /**
          * @brief Gets the number of bytes available in the read buffer.
          * @return Returns the number of bytes avilable in the read buffer.
          */
         int GetNumberOfBytesAvailable() ;
-
-#ifdef __linux__
-        /**
-         * @brief Gets a list of available serial ports.
-         * @return Returns a std::vector of std::strings with the name of
-         *         each available serial port.
-         */
-        std::vector<std::string> GetAvailableSerialPorts() const ;
-#endif
 
         /**
          * @brief Reads the specified number of bytes from the serial port.
@@ -441,15 +435,15 @@ namespace LibSerial
          */
         bool GetModemControlLine(int modemLine) ;
 
-    protected:
-
-    private:
         /**
          * @brief Forward declaration of the Implementation class folowing
          *        the PImpl idiom.
          */
         class Implementation;
 
+    protected:
+
+    private:
         /**
          * @brief Pointer to Implementation class instance.
          */
@@ -499,13 +493,13 @@ namespace LibSerial
      */
     template<typename Fn, typename... Args>
     typename std::result_of<Fn(Args...)>::type
-    call_with_retry(Fn func, Args... args)
+    call_with_retry(Fn func, Args&&... args)
     {
-        using result_type = typename std::result_of<Fn(Args...)>::type ;
-        result_type result ;
+        using result_type = typename std::result_of<Fn(Args...)>::type;
+        result_type result;
         do {
             result = func(std::forward<Args>(args)...);
-        } while((result == -1) and (errno == EINTR)) ;
-        return result ;
+        } while ((result == -1) && (errno == EINTR));
+        return result;
     }
 } // namespace LibSerial

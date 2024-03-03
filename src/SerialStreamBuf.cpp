@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <emscripten/val.h>
 
 namespace LibSerial
 {
@@ -274,22 +275,13 @@ namespace LibSerial
          * @brief Gets the serial port file descriptor.
          * @return Returns the serial port file descriptor.
          */
-        int GetFileDescriptor() const ;
+        emscripten::EM_VAL GetFileDescriptor() const ;
 
         /**
          * @brief Gets the number of bytes available in the read buffer.
          * @return Returns the number of bytes avilable in the read buffer.
          */
         int GetNumberOfBytesAvailable() ;
-
-#ifdef __linux__
-        /**
-         * @brief Gets a list of available serial ports.
-         * @return Returns a std::vector of std::strings with the name of
-         *         each available serial port.
-         */
-        std::vector<std::string> GetAvailableSerialPorts() const ;
-#endif
 
         /**
          * @brief Writes up to n characters from the character sequence at
@@ -579,7 +571,7 @@ namespace LibSerial
         return mImpl->GetDSR() ;
     }
 
-    int
+    emscripten::EM_VAL
     SerialStreamBuf::GetFileDescriptor() const
     {
         return mImpl->GetFileDescriptor() ;
@@ -590,14 +582,6 @@ namespace LibSerial
     {
         return mImpl->GetNumberOfBytesAvailable() ;
     }
-
-#ifdef __linux__
-    std::vector<std::string>
-    SerialStreamBuf::GetAvailableSerialPorts() const
-    {
-        return mImpl->GetAvailableSerialPorts() ;
-    }
-#endif
 
     std::streambuf*
     SerialStreamBuf::setbuf(char_type* character, std::streamsize numberOfBytes)
@@ -914,7 +898,7 @@ namespace LibSerial
     }
 
     inline
-    int
+    emscripten::EM_VAL
     SerialStreamBuf::Implementation::GetFileDescriptor() const
     {
         return mSerialPort.GetFileDescriptor() ;
@@ -927,14 +911,6 @@ namespace LibSerial
         return mSerialPort.GetNumberOfBytesAvailable() ;
     }
 
-#ifdef __linux__
-    inline
-    std::vector<std::string>
-    SerialStreamBuf::Implementation::GetAvailableSerialPorts() const
-    {
-        return mSerialPort.GetAvailableSerialPorts() ;
-    }
-#endif
 
     inline
     std::streamsize
@@ -958,97 +934,9 @@ namespace LibSerial
         // :TODO: Consider using mSerialPort.Write() here instead of writing
         //        to the file descriptor directly.
         const auto fd = mSerialPort.GetFileDescriptor() ;
-        ssize_t result = call_with_retry(write, fd, character, numberOfBytes) ;
-
-        // If the write failed then return 0.
-        if (result <= 0)
-        {
-            return 0 ;
-        }
-
+        mSerialPort.Write(character) ;
         // Otherwise, return the number of bytes actually written.
-        return result;
-    }
-
-    inline
-    std::streamsize
-    SerialStreamBuf::Implementation::xsgetn(char_type* character,
-                                            std::streamsize numberOfBytes)
-    {
-        // Throw an exception if the serial port is not open.
-        if (!this->IsOpen())
-        {
-            throw NotOpen(ERR_MSG_PORT_NOT_OPEN) ;
-        }
-
-        // If n is less than 1 there is nothing to accomplish.
-        if (numberOfBytes <= 0)
-        {
-            return 0 ;
-        }
-
-        if (character == nullptr) {
-            return 0 ;
-        }
-
-        // Try to read up to n characters in the array s.
-        ssize_t result = -1;
-
-        // If a putback character is available, then we need to read only
-        // n-1 character.
-        if (mPutbackAvailable)
-        {
-            // Put the mPutbackChar at the beginning of the array 's'.
-            // Increment result to indicate that a character has been placed in s.
-            character[0] = mPutbackChar;
-            result++;
-
-            // The putback character is no longer available.
-            mPutbackAvailable = false;
-
-            // If we need to read more than one character, then call read()
-            // and try to read numberOfBytes-1 more characters and put them
-            // at location starting from &character[1].
-            if (numberOfBytes > 1)
-            {
-                // 
-                // :TODO: Consider using mSerialPort.Read() here instead of
-                // using the file descriptor.
-                //
-                const auto fd = mSerialPort.GetFileDescriptor() ;
-                result = call_with_retry(read, fd, &character[1], numberOfBytes-1) ;
-
-                // If read was successful, then we need to increment result by
-                // one to indicate that the putback character was prepended to
-                // the array, s. If read failed then leave result at -1.
-                if (result != -1)
-                {
-                    result++;
-                }
-            }
-        }
-        else
-        {
-            // If no putback character is available then we try to
-            // read numberOfBytes characters.
-            // 
-            // :TODO: Consider using mSerialPort.Read() here instead of
-            //        using the file descriptor.
-            const auto fd = mSerialPort.GetFileDescriptor() ;
-            result = call_with_retry(read, fd, character, numberOfBytes) ;
-        }
-
-        // If result == -1 then the read call had an error, otherwise, if
-        // result == 0 then we could not read the characters. In either
-        // case, we return 0 to indicate that no characters could be read
-        // from the serial port.
-        if (result <= 0)
-        {
-            return 0 ;
-        }
-
-        // Return the number of characters actually read from the serial port.
-        return result;
+        return numberOfBytes ;
     }
 
     inline
@@ -1074,73 +962,10 @@ namespace LibSerial
         //        of using the file descriptor.
         const auto fd = mSerialPort.GetFileDescriptor() ;
         char out_char = traits_type::to_char_type(character) ;
-        ssize_t result = call_with_retry(write, fd, &out_char, 1) ;
+        //ssize_t result = call_with_retry(write, fd, &out_char, 1) ;
+        mSerialPort.Write(&out_char) ;
 
-        // If the write failed then return eof.
-        if (result <= 0)
-        {
-            return traits_type::eof() ;
-        }
-
-        // Otherwise, return something other than eof().
         return traits_type::not_eof(character) ;
-    }
-
-    inline
-    std::streambuf::int_type
-    SerialStreamBuf::Implementation::underflow()
-    {
-        // Throw an exception if the serial port is not open.
-        if (!this->IsOpen())
-        {
-            throw NotOpen(ERR_MSG_PORT_NOT_OPEN) ;
-        }
-
-        // Read the next character from the serial port.
-        char next_char = 0 ;
-        ssize_t result = -1;
-
-        // If a putback character is available then we return that
-        // character. However, we are not supposed to change the value of
-        // gptr() in this routine so we leave mPutbackAvailable set to true.
-        if (mPutbackAvailable)
-        {
-            next_char = mPutbackChar;
-        }
-        else
-        {
-            // If no putback character is available then we need to read one
-            // character from the serial port.
-            // 
-            // :TODO: Consider using a method of SerialPort class here instead
-            // of using the file descriptor.
-            //
-            const auto fd = mSerialPort.GetFileDescriptor() ;
-            result = call_with_retry(read, fd, &next_char, 1) ;
-
-            // Make the next character the putback character. This has the
-            // effect of returning the next character without changing gptr()
-            // as required by the C++ standard.
-            if (result == 1)
-            {
-                mPutbackChar = next_char;
-                mPutbackAvailable = true ;
-            }
-            else if (result <= 0)
-            {
-                // If we had a problem reading the character, we return
-                // traits::eof().
-                return traits_type::eof() ;
-            }
-        }
-
-        // :NOTE: Wed Aug  9 21:26:51 2000 Pagey
-        //        The value of mPutbackAvailable is always true when the code
-        //        reaches here.
-
-        // Return the character as an int value as required by the C++
-        // standard.
-        return traits_type::to_int_type(next_char) ;
     }
 
     inline
@@ -1189,35 +1014,5 @@ namespace LibSerial
         mPutbackChar = traits_type::to_char_type(character) ;
         mPutbackAvailable = true ;
         return traits_type::not_eof(character) ;
-    }
-
-    inline
-    std::streamsize
-    SerialStreamBuf::Implementation::showmanyc()
-    {
-        // Throw an exception if the serial port is not open.
-        if (!this->IsOpen())
-        {
-            throw NotOpen(ERR_MSG_PORT_NOT_OPEN) ;
-        }
-
-        ssize_t number_of_bytes_available = 0 ;
-
-        // NOLINTNEXTLINE (cppcoreguidelines-pro-type-vararg)
-        // 
-        // :TODO: Consider using a method of SerialPort class here instead
-        //        of using the file descriptor.
-        const auto fd = mSerialPort.GetFileDescriptor() ;
-        const auto result = call_with_retry(ioctl,
-                                            fd,
-                                            FIONREAD,
-                                            &number_of_bytes_available) ;
-
-        if ((result >= 0) and (number_of_bytes_available > 0))
-        {
-            mPutbackAvailable = true ;
-        }
-
-        return number_of_bytes_available;
     }
 } // namespace LibSerial

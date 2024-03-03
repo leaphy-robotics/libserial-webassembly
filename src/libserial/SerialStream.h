@@ -38,6 +38,7 @@
 
 #include <istream>
 #include <memory>
+#include <emscripten/val.h>
 
 namespace LibSerial
 {
@@ -312,7 +313,7 @@ namespace LibSerial
          * @brief Gets the serial port file descriptor.
          * @return Returns the serial port file descriptor.
          */
-        int GetFileDescriptor() ;
+        emscripten::EM_VAL GetFileDescriptor() ;
 
         /**
          * @brief Gets the number of bytes available in the read buffer.

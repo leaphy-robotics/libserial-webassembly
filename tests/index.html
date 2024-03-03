@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<button id="btn">Click me</button>
+<script type="module">
+    const a = async () => {
+        const serial = await import('./serial.js');
+        console.log(serial);
+        const funcs = await serial.default();
+        document.getElementById('btn').addEventListener('click', async () => {
+            console.log(funcs?._open());
+        });
+    };
+    a();
+</script>
+</body>
+</html>

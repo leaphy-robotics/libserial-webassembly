@@ -128,7 +128,7 @@ namespace LibSerial
         /**
          * @brief Exception error thrown when the serial port is not open.
          */
-        explicit NotOpen(const std::string& whatArg [[maybe_unused]])
+        explicit NotOpen(const std::string& whatArg)
             : logic_error(whatArg)
         {
         }
@@ -143,7 +143,7 @@ namespace LibSerial
         /**
          * @brief Exception error thrown when the serial port is already open.
          */
-        explicit AlreadyOpen(const std::string& whatArg [[maybe_unused]])
+        explicit AlreadyOpen(const std::string& whatArg)
             : logic_error(whatArg)
         {
         }
@@ -158,7 +158,7 @@ namespace LibSerial
         /**
          * @brief Exception error thrown when the serial port could not be opened.
          */
-        explicit OpenFailed(const std::string& whatArg [[maybe_unused]])
+        explicit OpenFailed(const std::string& whatArg)
             : runtime_error(whatArg)
         {
         }
@@ -175,7 +175,7 @@ namespace LibSerial
          * @brief Exception error thrown when data could not be read from the
          *        serial port before the timeout had been exceeded.
          */
-        explicit ReadTimeout(const std::string& whatArg [[maybe_unused]])
+        explicit ReadTimeout(const std::string& whatArg)
             : runtime_error(whatArg)
         {
         }
@@ -188,7 +188,7 @@ namespace LibSerial
      *        rate, is used to terminate the connection, (i.e. drop DTR).
      *        The Close() method should be used instead.
      */
-    enum class BaudRate : speed_t
+    enum class BaudRate
     {
         BAUD_50      = B50,
         BAUD_75      = B75,
@@ -210,72 +210,56 @@ namespace LibSerial
         BAUD_230400  = B230400,
 
 // @note: >B230400 are defined in Linux but not other POSIX systems, (e.g. Mac OS X).
-#ifdef __linux__
-        BAUD_460800  = B460800,
-        BAUD_500000  = B500000,
-        BAUD_576000  = B576000,
-        BAUD_921600  = B921600,
-        BAUD_1000000 = B1000000,
-        BAUD_1152000 = B1152000,
-        BAUD_1500000 = B1500000,
-#if __MAX_BAUD > B2000000
-        BAUD_2000000 = B2000000,
-        BAUD_2500000 = B2500000,
-        BAUD_3000000 = B3000000,
-        BAUD_3500000 = B3500000,
-        BAUD_4000000 = B4000000,
-#endif // __MAX_BAUD
-#endif // __linux__
         BAUD_DEFAULT = BAUD_115200,
-        BAUD_INVALID = std::numeric_limits<speed_t>::max()
+        BAUD_INVALID = std::numeric_limits<int>::max()
     } ;
 
     /**
      * @brief The allowed character sizes.
      */
-    enum class CharacterSize : tcflag_t
+    enum class CharacterSize
     {
         CHAR_SIZE_5       = CS5, // !< 5 bit characters.
         CHAR_SIZE_6       = CS6, // !< 6 bit characters.
         CHAR_SIZE_7       = CS7, // !< 7 bit characters.
         CHAR_SIZE_8       = CS8, // !< 8 bit characters.
         CHAR_SIZE_DEFAULT = CS8, // !< 8 bit characters.
-        CHAR_SIZE_INVALID = std::numeric_limits<tcflag_t>::max()
+        CHAR_SIZE_INVALID = std::numeric_limits<int>::max()
     } ;
 
     /**
      * @brief The allowed flow control types.
      */
-    enum class FlowControl : tcflag_t
+    enum class FlowControl
     {
         FLOW_CONTROL_HARDWARE,
         FLOW_CONTROL_SOFTWARE,
         FLOW_CONTROL_NONE,
         FLOW_CONTROL_DEFAULT = FLOW_CONTROL_NONE,
-        FLOW_CONTROL_INVALID = std::numeric_limits<tcflag_t>::max()
+        FLOW_CONTROL_INVALID = std::numeric_limits<int>::max()
     } ;
 
     /**
      * @brief The allowed parity types.
      */
-    enum class Parity : tcflag_t
+    enum class Parity
     {
         PARITY_EVEN,                                          // !< Even parity.
         PARITY_ODD,                                           // !< Odd parity.
         PARITY_NONE,                                          // !< No parity i.e. parity checking disabled.
         PARITY_DEFAULT = PARITY_NONE,                         // !< No parity i.e. parity checking disabled.
-        PARITY_INVALID = std::numeric_limits<tcflag_t>::max() // !< Invalid parity value.
+        PARITY_INVALID = std::numeric_limits<int>::max()      // !< Invalid parity value.
     } ;
 
     /**
      * @brief The allowed number of stop bits.
      */
-    enum class StopBits : tcflag_t
+    enum class StopBits
     {
         STOP_BITS_1,                     // !< 1 stop bit.
         STOP_BITS_2,                     // !< 2 stop bits.
         STOP_BITS_DEFAULT = STOP_BITS_1, // !< 1 stop bit.
-        STOP_BITS_INVALID = std::numeric_limits<tcflag_t>::max()
+        STOP_BITS_INVALID = std::numeric_limits<int>::max() // !< Invalid stop bits value.
     } ;
 
 } // namespace LibSerial

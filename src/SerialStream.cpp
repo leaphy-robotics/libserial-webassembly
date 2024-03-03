@@ -851,7 +851,7 @@ namespace LibSerial
         throw ;
     }
 
-    int
+    emscripten::_EM_VAL *
     SerialStream::GetFileDescriptor()
     try
     {
@@ -870,7 +870,7 @@ namespace LibSerial
         // class other than SerialStreamBuf. In either case, we have a
         // problem and we should stop all I/O using this stream.
         setstate(badbit) ;
-        return -1;
+        return nullptr ;
     }
     catch (const std::exception&)
     {
@@ -906,32 +906,5 @@ namespace LibSerial
         throw ;
     }
 
-#ifdef __linux__
-    std::vector<std::string>
-    SerialStream::GetAvailableSerialPorts()
-    try
-    {   
-        auto my_buffer = dynamic_cast<SerialStreamBuf *>(this->rdbuf()) ;
 
-        // Make sure that we are dealing with a SerialStreamBuf before
-        // proceeding. This check also makes sure that we have a non-NULL
-        // buffer associated with this stream.
-        if (my_buffer != nullptr)
-        {     
-            // Try to get the file descriptor.
-            return my_buffer->GetAvailableSerialPorts() ;
-        }
-        // If the dynamic_cast above failed then we either have a NULL
-        // streambuf associated with this stream or we have a buffer of
-        // class other than SerialStreamBuf. In either case, we have a
-        // problem and we should stop all I/O using this stream.
-        setstate(badbit) ;
-        return {} ;
-    }
-    catch (const std::exception&)
-    {
-        setstate(std::ios_base::failbit) ;
-        throw ;
-    }
-#endif
 } // namespace LibSerial
